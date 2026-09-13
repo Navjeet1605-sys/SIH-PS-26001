@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NER-Vision · AI Landslide Guardian (SIH 2026 PS 26001)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- Header / Top Navigation Bar -->
+<header class="topbar">
+  <div class="brand-wrapper">
+    <button id="themeToggleBtn" class="top-left-theme-btn" onclick="triggerThemeRefresh()" title="Switch Theme with Pleasant Refresh Animation">
+      <span class="refresh-icon-spin">🌌</span>
+      <span class="btn-text">Dark Blue Mode</span>
+    </button>
+    <a href="#" class="brand-badge">
+      <span>🏔️ NER-VISION</span>
+      <span class="sub-tag">AI GUARDIAN</span>
+    </a>
+    <span class="sih-tag">SIH 2026 · PS 26001</span>
+  </div>
+
+  <div class="topbar-center">
+    <div class="status-pill">
+      <span class="live-beacon"></span>
+      <span id="topbarStats">Syncing Live Telemetry & Satellite...</span>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <!-- Special Services Hub Menu Toggle Button (Switches between ☰ All Services and ✕ Close) -->
+    <button id="servicesToggleBtn" class="services-hub-btn" onclick="toggleServicesMenu()" title="Open All System Services Menu">
+      <span id="servicesBtnIcon">☰</span>
+      <span id="servicesBtnText">All Services</span>
+    </button>
+  </div>
+</header>
+
+<!-- Services Dimming Backdrop Overlay -->
+<div id="servicesBackdrop" class="services-backdrop-dim" onclick="toggleServicesMenu()"></div>
+
+<!-- Services Dropdown Menu Overlay -->
+<div id="servicesDropdownMenu" class="services-dropdown-overlay">
+  <div class="services-menu-header">
+    <div class="services-menu-title">
+      <span>🏔️ NER-VISION SERVICES HUB</span>
+    </div>
+    <button onclick="toggleServicesMenu()" style="background:none; border:none; font-size:1.1rem; cursor:pointer; font-weight:900;">✕</button>
+  </div>
+
+  <div class="services-menu-grid">
+    <div class="service-item-card" onclick="openReportModalDirect(); toggleServicesMenu();">
+      <div class="service-icon">📸</div>
+      <div class="service-details">
+        <span class="service-name">Report Incident</span>
+        <span class="service-sub">Log geotagged local hazard report</span>
+      </div>
+    </div>
+
+    <div class="service-item-card" onclick="openSubscribeModal(); toggleServicesMenu();">
+      <div class="service-icon">🚨</div>
+      <div class="service-details">
+        <span class="service-name">Alerts Subscription</span>
+        <span class="service-sub">Subscribe to SMS & Voice alerts</span>
+      </div>
+    </div>
+
+    <a href="/reports" target="_blank" class="service-item-card" onclick="toggleServicesMenu()">
+      <div class="service-icon">📋</div>
+      <div class="service-details">
+        <span class="service-name">Public Reports Bulletin</span>
+        <span class="service-sub">View community feed in reports.db</span>
+      </div>
+    </a>
+
+    <a href="/gis-map" class="service-item-card" onclick="toggleServicesMenu()" style="border:2px solid #38bdf8;">
+      <div class="service-icon">📡</div>
+      <div class="service-details">
+        <span class="service-name">GIS Satellite Geoportal</span>
+        <span class="service-sub">Full-screen mobile GIS map · GPS · Layers</span>
+      </div>
+    </a>
+
+    <a href="/admin" target="_blank" class="service-item-card" onclick="toggleServicesMenu()">
+      <div class="service-icon">🔒</div>
+      <div class="service-details">
+        <span class="service-name">Command Admin Panel</span>
+        <span class="service-sub">Official NDMA/SDMA moderation desk</span>
+      </div>
+    </a>
+
+    <a href="/login" class="service-item-card" onclick="toggleServicesMenu()">
+      <div class="service-icon">🔐</div>
+      <div class="service-details">
+        <span class="service-name">Sign In / User Portal</span>
+        <span class="service-sub">Field officer & subscriber login</span>
+      </div>
+    </a>
+
+    <div class="service-item-card" onclick="triggerThemeRefresh(); toggleServicesMenu();">
+      <div class="service-icon">🌌</div>
+      <div class="service-details">
+        <span class="service-name">Toggle Dark Blue Theme</span>
+        <span class="service-sub">Switch visual theme with refresh mode</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Dashboard Grid -->
+<main class="layout">
+  <!-- Left Column: Active Alerts & Rankings -->
+  <aside class="sidebar">
+    <div class="brutal-card">
+      <div class="brutal-card-header">
+        <span class="brutal-card-title">⚠️ Active Alerts</span>
+        <span class="brutal-card-badge" id="alertCountBadge">0 LIVE</span>
+      </div>
+      <div id="alertsList" class="scroll-list">
+        <div class="risk-row"><span class="loc-name">Monitoring telemetry streams...</span></div>
+      </div>
+    </div>
+
+    <div class="brutal-card">
+      <div class="brutal-card-header">
+        <span class="brutal-card-title">🏔️ Village Risk Ranking</span>
+        <span class="brutal-card-badge">ML SCORE</span>
+      </div>
+      <div id="riskRanking" class="scroll-list">
+        <div class="risk-row"><span class="loc-name">Loading village risk ranking...</span></div>
+      </div>
+    </div>
+
+    <div class="brutal-card">
+      <div class="brutal-card-header">
+        <span class="brutal-card-title">🌱 Climate Resilience</span>
+        <span class="brutal-card-badge">SCORE / 100</span>
+      </div>
+      <div id="resilienceList" class="scroll-list">
+        <div class="risk-row"><span class="loc-name">Loading resilience index...</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Center Stage: Geo-Hazard GIS Map -->
+  <section class="map-wrap">
+    <div class="map-floating-pill">
+      <span>🛰️ <b>North-East Hazard Grid</b> · ISRO / CWC Telemetry</span>
+    </div>
+    <div id="map"></div>
+    <div class="map-hint">
+      👉 Click a village marker to view AI telemetry · Click anywhere on the map to file a geotagged citizen report
+    </div>
+  </section>
+
+  <!-- Right Column: Command & Prediction Panel -->
+  <aside class="detail-panel" id="detailPanel">
+    <div class="brutal-card">
+      <div class="brutal-card-header">
+        <span class="brutal-card-title">🎯 AI Hazard Telemetry</span>
+        <span class="brutal-card-badge">SELECT NODE</span>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4;">
+        Click any village node on the map to inspect its real-time sensor streams, ML risk breakdown, multilingual audio emergency alerts, What-If simulation engine, and dynamic evacuation route.
+      </p>
+    </div>
+  </aside>
+</main>
+
+<!-- Citizen Incident Report Modal -->
+<div id="reportModal" class="modal hidden">
+  <div class="modal-box">
+    <h3 class="modal-title">📸 Geotag Incident</h3>
+    <p class="modal-desc">Report hill cracks, rockfalls, or drainage blockages directly to the NER disaster command center.</p>
+    
+    <div class="form-group">
+      <label>Coordinates</label>
+      <input type="text" id="reportCoords" readonly style="font-family:'JetBrains Mono'; background:#f1f5f9; font-weight:700;" />
+    </div>
+
+    <div class="form-group">
+      <label>Location / Nearest Village</label>
+      <select id="reportLocationSelect"></select>
+    </div>
+
+    <div class="form-group">
+      <label>Incident Description</label>
+      <textarea id="reportDesc" rows="3" placeholder="e.g. Fresh tension cracks widening across NH-10 hillside near km 14..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Observed Severity</label>
+      <select id="reportSeverity">
+        <option value="Low">Low — Minor seepage / minor soil slips</option>
+        <option value="Medium">Medium — Noticeable fissure / small rockfall</option>
+        <option value="High">High — Rapid slope movement / road obstruction</option>
+        <option value="Very High">Very High — Imminent catastrophic landslide</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Evidence Photo URL (Optional)</label>
+      <input type="text" id="reportMedia" placeholder="https://image-host.org/incident.jpg" />
+    </div>
+
+    <div class="modal-actions">
+      <button class="brutal-btn" onclick="closeReportModal()">Cancel</button>
+      <button class="brutal-btn brutal-btn-orange" onclick="submitReport()">Submit Report</button>
+    </div>
+  </div>
+</div>
+
+<!-- Emergency SMS & Voice Alert Subscription Modal -->
+<div id="subscribeModal" class="modal hidden">
+  <div class="modal-box">
+    <h3 class="modal-title">🚨 Emergency SMS & Voice Alerts</h3>
+    <p class="modal-desc">Register mobile numbers to receive automated WhatsApp/SMS and voice broadcast alerts when risk escalates.</p>
+
+    <div class="form-group">
+      <label>Phone Number (with Country Code)</label>
+      <input type="tel" id="subPhone" placeholder="+91 98765 43210" value="+91 " />
+    </div>
+
+    <div class="form-group">
+      <label>Monitored Village / Zone</label>
+      <select id="subLocationSelect"></select>
+    </div>
+
+    <div class="form-group">
+      <label>Preferred Alert Language</label>
+      <select id="subLanguage">
+        <option value="en">English (Broadcast)</option>
+        <option value="as">অসমীয়া (Assamese)</option>
+        <option value="bn">বাংলা (Bengali)</option>
+        <option value="hi">हिन्दी (Hindi)</option>
+      </select>
+    </div>
+
+    <div class="form-group" style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+      <input type="checkbox" id="subVoiceEnabled" checked style="width:18px; height:18px; accent-color:var(--orange);" />
+      <label for="subVoiceEnabled" style="margin:0; cursor:pointer; font-size:0.8rem;">Enable Automated Multilingual Voice IVR Calls</label>
+    </div>
+
+    <div class="modal-actions">
+      <button class="brutal-btn" onclick="closeSubscribeModal()">Cancel</button>
+      <button class="brutal-btn brutal-btn-green" onclick="submitSubscription()">Subscribe Device</button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating NER Disaster AI Chatbot Button (Horizontally Moveable & Non-Blocking) -->
+<div id="chatLauncher" class="chat-launcher-btn" onclick="handleLauncherClick(event)">
+  <span class="chat-pulse-beacon"></span>
+  <span>💬 NER Hill AI Guardian</span>
+  <span class="chat-drag-handle" title="Drag horizontally or click to open">⠿</span>
+</div>
+
+<!-- NER Disaster AI Chatbot Drawer Deck (Draggable & Moveable) -->
+<div id="chatDrawer" class="chat-drawer hidden">
+  <div class="chat-header" id="chatDragHeader">
+    <div class="chat-header-title">
+      <span>🤖 NER-Vision AI Guardian</span>
+      <span class="chat-header-tag">HILL SPECIALIST</span>
+    </div>
+    <div class="chat-header-actions">
+      <button class="chat-dock-btn" onclick="cycleChatDockPosition(event)" title="Cycle position: Left / Center / Right">⇋ Move Side</button>
+      <button class="chat-close-btn" onclick="toggleChatDrawer()">✕</button>
+    </div>
+  </div>
+
+  <div class="chat-context-pill">
+    <span>📍 Active Sector: <b id="chatActiveLoc">North-East Region (General)</b></span>
+    <span>DISASTER PROTOCOL</span>
+  </div>
+
+  <div id="chatMessages" class="chat-messages">
+    <div class="msg-wrapper bot">
+      <div class="msg-bubble">
+        🏔️ <b>Namaskar! I am the NER Hill Guardian AI.</b><br>
+        I am specialized exclusively to assist with <b>landslide safety, slope cracks, heavy rainfall thresholds, mountain highway transit (NH-10, Shillong, Dima Hasao), and disaster helplines</b> across North-East India.<br><br>
+        <i>How can I assist your safety or evacuation today?</i>
+      </div>
+      <button class="msg-tts-btn" onclick="playVoiceAlert('Namaskar! I am the NER Hill Guardian AI. How can I assist your landslide safety or evacuation today?', 'en')">🔊 Listen</button>
+    </div>
+  </div>
+
+  <!-- Quick Action Suggestion Chips -->
+  <div class="chat-quick-chips">
+    <button class="chip-btn" onclick="sendQuickPrompt('What are early warning signs of a landslide?')">⚠️ Warning Signs</button>
+    <button class="chip-btn" onclick="sendQuickPrompt('Cracks appearing on the hillside behind house')">🛑 Hillside Cracking</button>
+    <button class="chip-btn" onclick="sendQuickPrompt('Is NH-10 and hill highways safe to travel?')">🚗 NH-10 Road Safety</button>
+    <button class="chip-btn" onclick="sendQuickPrompt('Disaster emergency helplines for Assam, Sikkim and Meghalaya')">📞 Helplines (NDRF/SDRF)</button>
+    <button class="chip-btn" onclick="sendQuickPrompt('What should be in family emergency grab-and-go bag?')">🎒 Grab-Bag Kit</button>
+    <button class="chip-btn" onclick="sendQuickPrompt('Survival protocol if trapped in landslide mud')">🛡️ Trapped Survival</button>
+  </div>
+
+  <!-- Chat Input Box -->
+  <div class="chat-input-row">
+    <input type="text" id="chatInput" placeholder="Ask about hill safety, road status, cracks..." onkeydown="if(event.key==='Enter') sendChatMessage()" />
+    <button class="chat-send-btn" onclick="sendChatMessage()">SEND</button>
+  </div>
+</div>
+
+<!-- Neo-Brutalist Custom Cursor Elements -->
+<div id="cursorDot" class="custom-cursor-dot"></div>
+<div id="cursorRing" class="custom-cursor-ring"></div>
+
+<!-- Classy Theme Refresh Overlay Component -->
+<div id="themeRefreshOverlay" class="theme-refresh-overlay">
+  <div class="refresh-card-popup">
+    <div class="refresh-spinner-ring"></div>
+    <div class="refresh-title" id="refreshTitleText">REFRESHING THEME...</div>
+    <div class="refresh-sub" id="refreshSubText">Morphing Spatial UI Palette</div>
+  </div>
+</div>
+
+<!-- Toast Feedback Container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

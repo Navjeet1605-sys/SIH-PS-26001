@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NER-Vision · Command & Disaster Admin Panel (SIH 2026 PS 26001)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    .admin-body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    .admin-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 28px;
+      background: var(--bg-card);
+      border-bottom: 2px solid #000;
+      box-shadow: 0 4px 0 #000;
+    }
+    .admin-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 900;
+      font-size: 1.25rem;
+    }
+    .admin-lock-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 15, 30, 0.94);
+      backdrop-filter: blur(12px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .admin-lock-card {
+      background: #0f172a;
+      color: #f8fafc;
+      border: 3px solid #38bdf8;
+      border-radius: 16px;
+      padding: 36px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(56, 189, 248, 0.3);
+    }
+    .admin-lock-card h2 {
+      margin-top: 0;
+      color: #38bdf8;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .admin-input-group {
+      margin-bottom: 18px;
+    }
+    .admin-input-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .admin-input-group input {
+      width: 100%;
+      padding: 12px 14px;
+      background: #1e293b;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      color: #fff;
+      font-family: inherit;
+      font-weight: 600;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .admin-input-group input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+    }
+    .admin-btn {
+      width: 100%;
+      padding: 14px;
+      background: #0284c7;
+      color: #fff;
+      border: 2px solid #000;
+      border-radius: 8px;
+      font-weight: 900;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: 3px 3px 0 #000;
+      transition: all 0.15s ease;
+    }
+    .admin-btn:hover {
+      background: #0369a1;
+      transform: translate(-1px, -1px);
+      box-shadow: 4px 4px 0 #000;
+    }
+    .admin-container {
+      max-width: 1400px;
+      margin: 28px auto;
+      padding: 0 20px;
+    }
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 2.2fr 1fr;
+      gap: 24px;
+    }
+    .admin-table-card {
+      background: var(--bg-card);
+      border: 2px solid #000;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 4px 4px 0 #000;
+    }
+    .admin-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 0.84rem;
+    }
+    .admin-table th {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 12px;
+      text-align: left;
+      border-bottom: 2px solid #000;
+    }
+    .admin-table td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(0,0,0,0.12);
+      vertical-align: top;
+    }
+    .ver-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 800;
+      font-size: 0.72rem;
+      border: 1px solid #000;
+    }
+    .ver-badge.real { background: #dcfce7; color: #15803d; }
+    .ver-badge.spam { background: #fee2e2; color: #b91c1c; }
+    .action-btn-sm {
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 900;
+      border-radius: 6px;
+      border: 1.5px solid #000;
+      cursor: pointer;
+      box-shadow: 1.5px 1.5px 0 #000;
+      margin-right: 4px;
+    }
+    .btn-approve { background: #4ade80; color: #000; }
+    .btn-flag { background: #f87171; color: #000; }
+  </style>
+</head>
+<body class="admin-body">
+
+  <!-- Security Lock Overlay -->
+  <div id="adminLockOverlay" class="admin-lock-overlay">
+    <div class="admin-lock-card">
+      <h2>🔒 Official Disaster Officer Clearance</h2>
+      <p style="font-size:0.85rem; color:#94a3b8; line-height:1.4;">
+        NDMA / SDMA Administrative Portal. Authenticate credentials to manually inspect citizen reports in <code>reports.db</code>.
+      </p>
+      <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
+        <div class="admin-input-group">
+          <label>Government Email</label>
+          <input type="email" id="adminEmail" value="admin@nervision.gov.in" required />
+        </div>
+        <div class="admin-input-group">
+          <label>Security Password</label>
+          <input type="password" id="adminPassword" value="Guard@NER2026" required />
+        </div>
+        <button type="submit" class="admin-btn">🔑 Authenticate Clearance</button>
+      </form>
+      <div id="lockError" style="color:#ef4444; font-weight:800; font-size:0.82rem; margin-top:12px; display:none;"></div>
+      <div style="font-size:0.75rem; color:#64748b; margin-top:16px; text-align:center;">
+        Default Credentials: <b>admin@nervision.gov.in</b> / <b>Guard@NER2026</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Top Bar -->
+  <header class="admin-topbar">
+    <div class="admin-brand">
+      <span>🏔️ NER-VISION</span>
+      <span style="font-size:0.8rem; background:#ef7618; color:#fff; padding:2px 8px; border-radius:4px; border:1.5px solid #000;">
+        DISASTER COMMAND & MODERATION CENTER
+      </span>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <a href="/reports" target="_blank" style="font-weight:800; color:var(--text-main); text-decoration:none; font-size:0.9rem;">
+        📋 View Public Reports Feed →
+      </a>
+      <a href="/" style="font-weight:800; color:var(--text-main); text-decoration:none; font-size:0.9rem;">
+        ← Main Dashboard
+      </a>
+      <button onclick="handleAdminLogout()" style="background:#ef4444; color:#fff; border:1.5px solid #000; padding:6px 12px; font-weight:800; border-radius:6px; cursor:pointer;">
+        Logout
+      </button>
+    </div>
+  </header>
+
+  <!-- Admin Main Container -->
+  <div class="admin-container">
+    <div style="margin-bottom:20px;">
+      <h1 style="margin:0 0 6px 0; font-size:1.8rem; font-weight:900;">🛡️ Citizen Reports Moderation Desk (`reports.db`)</h1>
+      <p style="margin:0; color:var(--text-muted); font-size:0.9rem;">
+        Inspect all geotagged reports submitted by local residents. Assure truthfulness manually or rely on AI NLP word scoring.
+      </p>
+    </div>
+
+    <div class="admin-grid">
+      <!-- Citizen Reports Detailed Table -->
+      <div class="admin-table-card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin:0; font-size:1.1rem; font-weight:900;">📋 Tabular Citizen Reports Database</h3>
+          <button onclick="loadAdminReports()" style="background:var(--bg-main); border:1.5px solid #000; padding:6px 12px; font-weight:800; border-radius:6px; cursor:pointer;">
+            🔄 Refresh Live Feed
+          </button>
+        </div>
+
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Sector & Coordinates</th>
+              <th>Citizen Incident Description</th>
+              <th>AI NLP Score</th>
+              <th>Manual Verification Control</th>
+            </tr>
+          </thead>
+          <tbody id="adminReportsBody">
+            <tr>
+              <td colspan="5" style="text-align:center; padding:20px; color:#64748b;">Loading reports from reports.db...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Control Deck -->
+      <div>
+        <!-- Emergency Dispatcher -->
+        <div class="admin-table-card" style="margin-bottom:20px;">
+          <h3 style="margin:0 0 12px 0; font-size:1.1rem; font-weight:900;">📢 Multi-Channel Emergency Dispatch</h3>
+          <form onsubmit="handleAdminBroadcast(event)">
+            <div class="admin-input-group" style="margin-bottom:12px;">
+              <label style="color:#000;">Target Sector</label>
+              <select id="broadcastSectorSelect" style="width:100%; padding:10px; border:2px solid #000; border-radius:6px; font-weight:700;">
+                <option value="ALL">All Monitored Sectors (NER Region)</option>
+              </select>
+            </div>
+            <div class="admin-input-group" style="margin-bottom:12px;">
+              <label style="color:#000;">Alert Advisory Message</label>
+              <textarea id="broadcastMsg" rows="3" style="width:100%; padding:10px; border:2px solid #000; border-radius:6px; font-family:inherit; font-weight:600;" placeholder="Official evacuation advisory..."></textarea>
+            </div>
+            <button type="submit" class="admin-btn" style="background:#ef7618;">
+              ⚡ Dispatch Emergency Advisory
+            </button>
+          </form>
+        </div>
+
+        <!-- Database Information -->
+        <div class="admin-table-card">
+          <h3 style="margin:0 0 8px 0; font-size:1.1rem; font-weight:900;">📊 Database Status</h3>
+          <div style="font-size:0.84rem; color:var(--text-muted); line-height:1.6;">
+            <div>• Database: <b>reports.db (SQLite)</b></div>
+            <div>• NLP Verifier: <b>Word & Distress Dictionary (Active)</b></div>
+            <div>• Security: <b>Session Token Authenticated</b></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById("adminEmail").value;
+      const pass = document.getElementById("adminPassword").value;
+      
+      try {
+        const res = await fetch("/api/v1/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: pass })
+        });
+        const data = await res.json();
+        if (data.status === "authenticated") {
+          document.getElementById("adminLockOverlay").style.display = "none";
+          loadAdminReports();
+        } else {
+          document.getElementById("lockError").textContent = data.message || "Invalid clearance credentials.";
+          document.getElementById("lockError").style.display = "block";
+        }
+      } catch (err) {
+        document.getElementById("lockError").textContent = "Authentication server error.";
+        document.getElementById("lockError").style.display = "block";
+      }
+    }
+
+    function handleAdminLogout() {
+      fetch("/api/v1/admin/logout", { method: "POST" }).then(() => {
+        location.reload();
+      });
+    }
+
+    async function loadAdminReports() {
+      try {
+        const res = await fetch("/api/v1/reports");
+        const reports = await res.json();
+        const tbody = document.getElementById("adminReportsBody");
+        
+        if (!reports || reports.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px;">No citizen reports logged in reports.db yet.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = reports.map(r => {
+          const isReal = r.is_verified || r.verification_status === "VERIFIED_REAL";
+          const score = (r.verification_score * 100).toFixed(0);
+          const reasons = (r.verification_reasons || []).join("<br>");
+          const timeStr = r.timestamp ? new Date(r.timestamp).toLocaleTimeString('en-IN') : 'N/A';
+
+          return `
+            <tr>
+              <td style="font-family:'JetBrains Mono'; font-size:0.75rem;"><b>${timeStr}</b></td>
+              <td>
+                <b>${r.location_name || 'Sector ' + r.location_id}</b><br>
+                <span style="font-size:0.72rem; color:#64748b;">${r.lat.toFixed(4)}°N, ${r.lng.toFixed(4)}°E</span><br>
+                <span class="badge ${r.reported_severity.replace(' ', '-')}">${r.reported_severity}</span>
+              </td>
+              <td>
+                <div style="font-weight:700; font-size:0.88rem;">"${r.description}"</div>
+                ${r.media_url ? `<div style="margin-top:4px;"><a href="${r.media_url}" target="_blank" style="font-size:0.75rem; color:#0284c7; font-weight:800;">🖼️ Photo Attachment</a></div>` : ''}
+              </td>
+              <td>
+                <span class="ver-badge ${isReal ? 'real' : 'spam'}">
+                  ${isReal ? '✓ VERIFIED REAL' : '⚠️ SUSPICIOUS SPAM'} (${score}%)
+                </span>
+                <div style="font-size:0.7rem; color:#64748b; margin-top:4px; line-height:1.3;">${reasons}</div>
+              </td>
+              <td style="white-space:nowrap;">
+                <button class="action-btn-sm btn-approve" onclick="overrideReport('${r.id}', true)">✓ Confirm True</button>
+                <button class="action-btn-sm btn-flag" onclick="overrideReport('${r.id}', false)">⚠️ Mark False/Spam</button>
+              </td>
+            </tr>
+          `;
+        }).join("");
+      } catch (err) {
+        console.error("Failed to load reports:", err);
+      }
+    }
+
+    async function overrideReport(reportId, isVerified) {
+      try {
+        await fetch("/api/v1/admin/reports/override", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ report_id: reportId, is_verified: isVerified })
+        });
+        loadAdminReports();
+      } catch (err) {
+        alert("Failed to override report status.");
+      }
+    }
+
+    async function handleAdminBroadcast(e) {
+      e.preventDefault();
+      const sector = document.getElementById("broadcastSectorSelect").value;
+      const msg = document.getElementById("broadcastMsg").value;
+      if (!msg) return;
+
+      try {
+        const res = await fetch("/api/v1/admin/broadcast", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sector, message: msg })
+        });
+        const data = await res.json();
+        alert(`Emergency advisory dispatched to subscribers!`);
+        document.getElementById("broadcastMsg").value = "";
+      } catch (err) {
+        alert("Broadcast failed.");
+      }
+    }
+  </script>
+</body>
+</html>

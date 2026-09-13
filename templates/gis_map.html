@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NER-Vision · GIS Satellite & Mobile Landslide Geoportal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  
+  <!-- Leaflet CSS & Mobile Styling -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/static/style.css" />
+  
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      background: #0f172a;
+    }
+    #gisMap {
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+    /* Mobile-First Header Bar */
+    .gis-topbar {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 1000;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(10px);
+      border: 2px solid #38bdf8;
+      border-radius: 12px;
+      padding: 10px 16px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    }
+    .gis-brand {
+      font-weight: 900;
+      font-size: 1rem;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .gis-nav-link {
+      background: #0284c7;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 0.8rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1.5px solid #000;
+      box-shadow: 2px 2px 0 #000;
+    }
+    /* Mobile Layer Switcher Floating Control */
+    .gis-layer-control {
+      position: fixed;
+      top: 75px;
+      right: 12px;
+      z-index: 1000;
+      background: #0f172a;
+      border: 2px solid #38bdf8;
+      border-radius: 10px;
+      padding: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .gis-layer-btn {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1.5px solid #334155;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .gis-layer-btn.active {
+      background: #0284c7;
+      color: #fff;
+      border-color: #38bdf8;
+    }
+    /* GPS Mobile Locator Button */
+    .gis-gps-btn {
+      position: fixed;
+      bottom: 24px;
+      left: 12px;
+      z-index: 1000;
+      background: #ef7618;
+      color: #fff;
+      border: 2px solid #000;
+      border-radius: 50px;
+      padding: 12px 20px;
+      font-weight: 900;
+      font-size: 0.88rem;
+      cursor: pointer;
+      box-shadow: 3px 3px 0 #000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    /* Mobile Bottom Drawer for Sector Info */
+    .gis-bottom-sheet {
+      position: fixed;
+      bottom: -400px;
+      left: 12px;
+      right: 12px;
+      z-index: 1001;
+      background: #0f172a;
+      color: #f8fafc;
+      border: 3px solid #38bdf8;
+      border-radius: 16px 16px 12px 12px;
+      padding: 18px;
+      box-shadow: 0 -10px 40px rgba(0,0,0,0.8);
+      transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .gis-bottom-sheet.open {
+      bottom: 12px;
+    }
+    .sheet-handle {
+      width: 40px;
+      height: 5px;
+      background: #334155;
+      border-radius: 3px;
+      margin: 0 auto 12px auto;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Mobile Bar -->
+  <div class="gis-topbar">
+    <div class="gis-brand">
+      <span>📡 GIS SATELLITE GEOPORTAL</span>
+    </div>
+    <div>
+      <a href="/" class="gis-nav-link">← Dashboard</a>
+    </div>
+  </div>
+
+  <!-- GIS Layer Switcher Floating Panel -->
+  <div class="gis-layer-control">
+    <button id="btnSat" class="gis-layer-btn active" onclick="switchBaseLayer('sat')">📡 Satellite Imagery</button>
+    <button id="btnTopo" class="gis-layer-btn" onclick="switchBaseLayer('topo')">⛰️ Topo Terrain</button>
+    <button id="btnStreet" class="gis-layer-btn" onclick="switchBaseLayer('street')">🗺️ Street Map</button>
+  </div>
+
+  <!-- GPS Mobile Locator Button -->
+  <button class="gis-gps-btn" onclick="locateUserGPS()">
+    <span>🎯 Find My GPS Location</span>
+  </button>
+
+  <!-- Full-Screen Interactive GIS Map -->
+  <div id="gisMap"></div>
+
+  <!-- Mobile Bottom Sheet Details Drawer -->
+  <div id="gisBottomSheet" class="gis-bottom-sheet">
+    <div class="sheet-handle" onclick="closeBottomSheet()"></div>
+    <div id="sheetContent">
+      <div style="text-align:center; color:#94a3b8;">Tap any hazard sector marker on the GIS map to inspect live satellite telemetry & GSI layers.</div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    let gisMap;
+    let baseLayers = {};
+    let activeBaseLayer;
+    let sectorMarkers = [];
+    let userGpsMarker = null;
+    let LOCATIONS_DATA = [];
+    let evacuationLayer = null;
+
+    function initGISMap() {
+      // 1. Initialize Map centered on NER Region with mobile touch support
+      gisMap = L.map("gisMap", {
+        zoomControl: false,
+        tap: true,
+        touchZoom: true,
+        dragging: true,
+        bounceAtZoomLimits: true
+      }).setView([26.0, 92.8], 7);
+
+      // 2. GIS Base Layers
+      baseLayers.sat = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        attribution: "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+        maxZoom: 18
+      });
+
+      baseLayers.topo = L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {
+        attribution: "Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap (CC-BY-SA)",
+        maxZoom: 16
+      });
+
+      baseLayers.street = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+        maxZoom: 18
+      });
+
+      // Default Base Layer: High-Res Esri Satellite Imagery
+      activeBaseLayer = baseLayers.sat;
+      activeBaseLayer.addTo(gisMap);
+
+      // Re-add Zoom control to top left
+      L.control.zoom({ position: "topleft" }).addTo(gisMap);
+
+      // 3. Load Locations & GSI Layers
+      loadGISLocations();
+
+      // 4. Map click to file geotagged report
+      gisMap.on("click", function(e) {
+        const lat = e.latlng.lat.toFixed(5);
+        const lng = e.latlng.lng.toFixed(5);
+        openBottomSheetReport(lat, lng);
+      });
+    }
+
+    function switchBaseLayer(type) {
+      document.querySelectorAll(".gis-layer-btn").forEach(b => b.classList.remove("active"));
+      gisMap.removeLayer(activeBaseLayer);
+
+      if (type === "sat") {
+        activeBaseLayer = baseLayers.sat;
+        document.getElementById("btnSat").classList.add("active");
+      } else if (type === "topo") {
+        activeBaseLayer = baseLayers.topo;
+        document.getElementById("btnTopo").classList.add("active");
+      } else {
+        activeBaseLayer = baseLayers.street;
+        document.getElementById("btnStreet").classList.add("active");
+      }
+      activeBaseLayer.addTo(gisMap);
+    }
+
+    async function loadGISLocations() {
+      try {
+        const res = await fetch("/api/v1/locations");
+        LOCATIONS_DATA = await res.json();
+
+        LOCATIONS_DATA.forEach(loc => {
+          const color = loc.risk_level === "Very High" ? "#ef4444" :
+                        loc.risk_level === "High" ? "#f97316" :
+                        loc.risk_level === "Medium" ? "#f59e0b" : "#10b981";
+
+          // Pulsing danger halo for high-risk sectors
+          if (loc.risk_level === "Very High" || loc.risk_level === "High") {
+            L.circleMarker([loc.lat, loc.lng], {
+              radius: 22,
+              weight: 1,
+              color: color,
+              fillColor: color,
+              fillOpacity: 0.15,
+              className: "gis-pulse-halo"
+            }).addTo(gisMap);
+          }
+
+          // GIS Pulse Radar Marker
+          const marker = L.circleMarker([loc.lat, loc.lng], {
+            radius: 13,
+            weight: 3,
+            color: "#ffffff",
+            fillColor: color,
+            fillOpacity: 0.9
+          }).addTo(gisMap);
+
+          marker.bindTooltip(`<b>${loc.name}</b><br>${loc.state} (${loc.risk_level} Risk)`, {
+            permanent: false,
+            direction: "top"
+          });
+
+          marker.on("click", () => {
+            inspectSectorDetails(loc.id);
+          });
+
+          sectorMarkers.push(marker);
+        });
+      } catch (err) {
+        console.error("Failed to load GIS map locations:", err);
+      }
+    }
+
+    async function inspectSectorDetails(locId) {
+      try {
+        const res = await fetch(`/api/v1/predict/${locId}`);
+        const data = await res.json();
+        const loc = data.location;
+        const s = data.sensor_state;
+        const ml = data.ml_prediction;
+
+        const content = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <div style="font-size:1.1rem; font-weight:900; color:#38bdf8;">📍 ${loc.name}</div>
+              <div style="font-size:0.75rem; color:#94a3b8;">${loc.district}, ${loc.state} · Elevation: ${loc.elevation_m || 800}m</div>
+            </div>
+            <span style="background:${ml.risk_level==='Very High'?'#ef4444':ml.risk_level==='High'?'#f97316':'#f59e0b'}; color:#fff; padding:4px 10px; border-radius:6px; font-weight:900; font-size:0.75rem;">${ml.risk_level}</span>
+          </div>
+
+          <div style="margin:10px 0; padding:8px; background:#1e293b; border-radius:8px; font-size:0.78rem;">
+            <div><b>GSI Susceptibility Zone:</b> ${loc.gsi_zone || 'High Susceptibility Zone-1'}</div>
+            <div><b>Lithology:</b> ${loc.lithology || 'Phyllite Schist & Weathered Soil'}</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:12px; font-size:0.78rem; text-align:center;">
+            <div style="background:#1e293b; padding:6px; border-radius:6px;">
+              <div style="color:#94a3b8; font-size:0.68rem;">24h Rain</div>
+              <div style="font-weight:900; color:#38bdf8;">${s.rainfall_24h.toFixed(1)}mm</div>
+            </div>
+            <div style="background:#1e293b; padding:6px; border-radius:6px;">
+              <div style="color:#94a3b8; font-size:0.68rem;">Soil Moist.</div>
+              <div style="font-weight:900; color:#38bdf8;">${s.soil_moisture.toFixed(1)}%</div>
+            </div>
+            <div style="background:#1e293b; padding:6px; border-radius:6px;">
+              <div style="color:#94a3b8; font-size:0.68rem;">Slope</div>
+              <div style="font-weight:900; color:#38bdf8;">${s.slope_deg.toFixed(0)}°</div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <button onclick="drawEvacRoute('${locId}')" style="background:#10b981; color:#fff; padding:10px; font-weight:900; border-radius:8px; border:1.5px solid #000; box-shadow:2px 2px 0 #000; cursor:pointer; font-size:0.8rem;">
+              🚨 Show Evacuation
+            </button>
+            <a href="https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}&travelmode=driving" 
+               target="_blank" 
+               style="display:flex; align-items:center; justify-content:center; text-align:center; background:#ef7618; color:#fff; text-decoration:none; padding:10px; font-weight:900; border-radius:8px; border:1.5px solid #000; box-shadow:2px 2px 0 #000; font-size:0.8rem;">
+               🗺️ Google Maps
+            </a>
+          </div>
+        `;
+
+        document.getElementById("sheetContent").innerHTML = content;
+        document.getElementById("gisBottomSheet").classList.add("open");
+        gisMap.setView([loc.lat, loc.lng], 11, { animate: true });
+      } catch (err) {
+        console.error("Failed to inspect sector:", err);
+      }
+    }
+
+    async function drawEvacRoute(locId) {
+      try {
+        const res = await fetch(`/api/v1/evacuate?location_id=${locId}`);
+        const data = await res.json();
+        
+        // Remove existing evacuation layer
+        if (evacuationLayer) {
+          gisMap.removeLayer(evacuationLayer);
+        }
+        evacuationLayer = L.layerGroup().addTo(gisMap);
+
+        // Draw road geometry from OSRM if available
+        if (data.route_geometry && data.route_geometry.length > 1) {
+          const routeCoords = data.route_geometry.map(c => [c[0], c[1]]);
+          
+          // Glow backdrop
+          L.polyline(routeCoords, {
+            color: "#38bdf8", weight: 10, opacity: 0.3
+          }).addTo(evacuationLayer);
+          
+          // Main route line
+          L.polyline(routeCoords, {
+            color: "#10b981", weight: 5, opacity: 0.95, dashArray: "12 8"
+          }).addTo(evacuationLayer);
+
+          gisMap.fitBounds(L.polyline(routeCoords).getBounds(), { padding: [60, 60] });
+        }
+
+        // Mark safe destination
+        if (data.safe_destination) {
+          const sd = data.safe_destination;
+          L.marker([sd.lat, sd.lng], {
+            icon: L.divIcon({
+              className: "",
+              html: `<div style="background:#10b981; border:3px solid #fff; border-radius:50%; width:20px; height:20px; box-shadow:0 0 16px #10b981;"></div>`,
+              iconSize: [20, 20]
+            })
+          }).addTo(evacuationLayer).bindPopup(`<b>🟢 Safe Zone: ${sd.name}</b>`).openPopup();
+        }
+      } catch (err) {
+        console.error("Evacuation route error:", err);
+      }
+    }
+
+    function openBottomSheetReport(lat, lng) {
+      const content = `
+        <div style="font-weight:900; color:#38bdf8; font-size:1rem; margin-bottom:8px;">📸 File Geotagged Report</div>
+        <div style="font-size:0.78rem; color:#94a3b8; margin-bottom:12px;">Location: ${lat}, ${lng}</div>
+        <textarea id="gisReportDesc" rows="3" placeholder="Describe the hazard you observe..." style="width:100%; padding:10px; border-radius:8px; border:2px solid #334155; background:#1e293b; color:#f8fafc; font-size:0.85rem; resize:none;"></textarea>
+        <select id="gisReportSeverity" style="width:100%; padding:10px; margin-top:8px; border-radius:8px; border:2px solid #334155; background:#1e293b; color:#f8fafc; font-size:0.85rem;">
+          <option value="Low">Low — Minor seepage</option>
+          <option value="Medium">Medium — Noticeable fissure</option>
+          <option value="High">High — Rapid slope movement</option>
+          <option value="Very High">Very High — Imminent danger</option>
+        </select>
+        <button onclick="submitGISReport(${lat}, ${lng})" style="width:100%; margin-top:12px; background:#ef7618; color:#fff; padding:12px; font-weight:900; border-radius:8px; border:2px solid #000; box-shadow:3px 3px 0 #000; cursor:pointer; font-size:0.9rem;">
+          🚀 Submit Report
+        </button>
+      `;
+      document.getElementById("sheetContent").innerHTML = content;
+      document.getElementById("gisBottomSheet").classList.add("open");
+    }
+
+    async function submitGISReport(lat, lng) {
+      const desc = document.getElementById("gisReportDesc").value;
+      const sev = document.getElementById("gisReportSeverity").value;
+      if (!desc.trim()) { alert("Please describe the hazard."); return; }
+
+      try {
+        const res = await fetch("/api/v1/reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            lat: lat, lng: lng,
+            description: desc,
+            reported_severity: sev,
+            location_id: ""
+          })
+        });
+        const data = await res.json();
+        document.getElementById("sheetContent").innerHTML = `
+          <div style="text-align:center; padding:20px;">
+            <div style="font-size:2rem; margin-bottom:8px;">✅</div>
+            <div style="font-weight:900; color:#10b981; font-size:1rem;">Report Submitted</div>
+            <div style="color:#94a3b8; font-size:0.8rem; margin-top:6px;">Verification: ${data.verification_status} (Score: ${data.verification_score})</div>
+          </div>
+        `;
+        setTimeout(() => closeBottomSheet(), 3000);
+      } catch (err) {
+        alert("Failed to submit report.");
+      }
+    }
+
+    function closeBottomSheet() {
+      document.getElementById("gisBottomSheet").classList.remove("open");
+    }
+
+    function locateUserGPS() {
+      if (!navigator.geolocation) {
+        alert("GPS is not supported by your browser/device.");
+        return;
+      }
+
+      const btn = document.querySelector(".gis-gps-btn span");
+      btn.textContent = "⏳ Locating...";
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+
+          if (userGpsMarker) gisMap.removeLayer(userGpsMarker);
+
+          userGpsMarker = L.marker([lat, lng], {
+            icon: L.divIcon({
+              className: "",
+              html: `<div style="background:#38bdf8; border:3px solid #fff; border-radius:50%; width:24px; height:24px; box-shadow:0 0 20px #38bdf8; animation: gpsPulse 1.5s infinite;"></div>`,
+              iconSize: [24, 24]
+            })
+          }).addTo(gisMap).bindPopup("<b>🎯 Your Mobile GPS Location</b>").openPopup();
+
+          // Draw accuracy circle
+          L.circle([lat, lng], {
+            radius: pos.coords.accuracy || 150,
+            color: "#38bdf8",
+            fillColor: "#38bdf8",
+            fillOpacity: 0.08,
+            weight: 1
+          }).addTo(gisMap);
+
+          gisMap.setView([lat, lng], 14, { animate: true });
+          btn.textContent = "🎯 GPS Located";
+          setTimeout(() => { btn.textContent = "🎯 Find My GPS Location"; }, 3000);
+        },
+        (err) => {
+          alert("Unable to retrieve GPS location. Please allow location permissions.");
+          btn.textContent = "🎯 Find My GPS Location";
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+      );
+    }
+
+    window.onload = initGISMap;
+  </script>
+
+  <style>
+    @keyframes gpsPulse {
+      0%, 100% { box-shadow: 0 0 10px #38bdf8; }
+      50% { box-shadow: 0 0 30px #38bdf8, 0 0 60px rgba(56,189,248,0.3); }
+    }
+    .gis-pulse-halo {
+      animation: gisHaloPulse 2s infinite;
+    }
+    @keyframes gisHaloPulse {
+      0%, 100% { opacity: 0.15; }
+      50% { opacity: 0.4; }
+    }
+  </style>
+</body>
+</html>
+

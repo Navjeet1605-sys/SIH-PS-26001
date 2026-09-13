@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NER-Vision · Citizen & Officer Login (SIH 2026 PS 26001)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    /* Custom Login Page Specific Styles extending SIH 2026 Neo-Brutalist Theme */
+    .login-container {
+      min-height: calc(100vh - 70px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--panel);
+      border: var(--border-thick);
+      border-radius: var(--radius-lg);
+      box-shadow: 8px 8px 0px #000000;
+      padding: 28px 24px;
+      position: relative;
+      animation: modal-pop 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
+    }
+
+    .auth-tab-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: var(--bg);
+      padding: 6px;
+      border: var(--border-main);
+      border-radius: var(--radius-md);
+      box-shadow: 2px 2px 0px #000;
+    }
+
+    .auth-tab-btn {
+      flex: 1;
+      padding: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      background: transparent;
+      border: 2px solid transparent;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .auth-tab-btn.active {
+      background: var(--orange);
+      color: #000;
+      border-color: #000;
+      box-shadow: 2px 2px 0px #000;
+    }
+
+    .auth-tab-btn:hover:not(.active) {
+      background: var(--panel-alt);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brutal-input {
+      width: 100%;
+      padding: 12px 14px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      background: #ffffff;
+      border: var(--border-main);
+      border-radius: var(--radius-md);
+      box-shadow: 2px 2px 0px #000;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+
+    .brutal-input:focus {
+      background: var(--panel-alt);
+      box-shadow: 4px 4px 0px #000;
+      border-color: #000;
+    }
+
+    .input-icon-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-icon-wrap .icon {
+      position: absolute;
+      left: 12px;
+      font-size: 1.1rem;
+      pointer-events: none;
+    }
+
+    .input-icon-wrap .brutal-input {
+      padding-left: 42px;
+    }
+
+    .input-icon-wrap .eye-toggle {
+      position: absolute;
+      right: 12px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      opacity: 0.7;
+    }
+    .input-icon-wrap .eye-toggle:hover {
+      opacity: 1;
+    }
+
+    .role-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .role-card {
+      border: var(--border-sm);
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      background: #fff;
+      box-shadow: 2px 2px 0 #000;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      transition: all 0.12s ease;
+    }
+
+    .role-card:hover {
+      background: var(--orange-light);
+    }
+
+    .role-card.selected {
+      background: var(--green-light);
+      border-color: #000;
+      box-shadow: 3px 3px 0 #000;
+    }
+
+    .role-card input[type="radio"] {
+      accent-color: #000;
+    }
+
+    .sso-divider {
+      position: relative;
+      text-align: center;
+      margin: 20px 0 16px;
+    }
+
+    .sso-divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      border-top: 2px dashed #000;
+      z-index: 1;
+    }
+
+    .sso-divider span {
+      position: relative;
+      z-index: 2;
+      background: var(--panel);
+      padding: 0 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .sso-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .sso-btn {
+      padding: 10px;
+      background: #fff;
+      border: var(--border-main);
+      border-radius: var(--radius-md);
+      box-shadow: 2px 2px 0 #000;
+      font-weight: 800;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .sso-btn:hover {
+      transform: translate(-1.5px, -1.5px);
+      box-shadow: 3.5px 3.5px 0 #000;
+      background: var(--panel-alt);
+    }
+
+    .sso-btn:active {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0 #000;
+    }
+
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      background: #fff;
+      border: var(--border-main);
+      border-radius: var(--radius-md);
+      box-shadow: 4px 4px 0 #000;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: modal-pop 0.2s ease-out;
+    }
+    .toast.success { border-left: 6px solid var(--green); }
+    .toast.error { border-left: 6px solid var(--risk-vhigh); }
+  </style>
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Header / Top Navigation Bar (Identical to SIH-PS-26001 Main) -->
+  <header class="topbar">
+    <div class="brand-wrapper">
+      <button id="themeToggleBtn" class="top-left-theme-btn" onclick="triggerThemeRefresh()" title="Switch Theme with Pleasant Refresh Animation">
+        <span class="refresh-icon-spin">🌌</span>
+        <span class="btn-text">Dark Blue Mode</span>
+      </button>
+      <a href="/" class="brand-badge">
+        <span>🏔️ NER-VISION</span>
+        <span class="sub-tag">AI GUARDIAN</span>
+      </a>
+      <span class="sih-tag">SIH 2026 · PS 26001</span>
+    </div>
+
+    <div class="topbar-center">
+      <div class="status-pill">
+        <span class="live-beacon"></span>
+        <span id="topbarStats">🔐 SECURE CITIZEN & OFFICER AUTHENTICATION NODE</span>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <a href="/" class="brutal-btn brutal-btn-green brutal-btn-sm">
+        <span>🏔️ Back to Hazard Map</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Login Area -->
+  <main class="login-container">
+    <div class="auth-card">
+      
+      <!-- Card Header -->
+      <div class="brutal-card-header" style="margin-bottom: 16px;">
+        <span class="brutal-card-title">🔐 AUTHENTICATION GATEWAY</span>
+        <span class="brutal-card-badge">ISRO / CWC MESH</span>
+      </div>
+
+      <!-- Sign In / Sign Up Tab Switcher -->
+      <div class="auth-tab-row">
+        <button type="button" class="auth-tab-btn active" id="tabSignIn" onclick="switchAuthTab('signin')">
+          <span>🔑 Sign In</span>
+        </button>
+        <button type="button" class="auth-tab-btn" id="tabSignUp" onclick="switchAuthTab('signup')">
+          <span>📝 Register Account</span>
+        </button>
+      </div>
+
+      <!-- Auth Subtitle Guidance -->
+      <div class="callout-box green-accent" style="margin-bottom: 16px;">
+        <span id="authSubtitle">
+          Access real-time telemetry, submit geotagged citizen landslide alerts, and receive priority emergency broadcasts.
+        </span>
+      </div>
+
+      <!-- Form Component -->
+      <form id="authForm" onsubmit="handleAuthSubmit(event)">
+
+        <!-- Full Name Field (Sign Up Only) -->
+        <div class="form-group hidden" id="groupFullName">
+          <label for="fullName">Full Name</label>
+          <div class="input-icon-wrap">
+            <span class="icon">👤</span>
+            <input 
+              type="text" 
+              id="fullName" 
+              class="brutal-input" 
+              placeholder="e.g. Tenzing Norbu / Dr. Ananya Sharma" 
+            />
+          </div>
+        </div>
+
+        <!-- Role Selector (Sign Up Only) -->
+        <div class="form-group hidden" id="groupRole">
+          <label>Select User Role</label>
+          <div class="role-grid">
+            <label class="role-card selected" id="roleCitizenCard">
+              <input type="radio" name="userRole" value="citizen" checked onclick="selectRole('citizen')" />
+              <span>🏡 Citizen / Resident</span>
+            </label>
+            <label class="role-card" id="roleResponderCard">
+              <input type="radio" name="userRole" value="responder" onclick="selectRole('responder')" />
+              <span>🚨 NDRF / SDRF Force</span>
+            </label>
+            <label class="role-card" id="roleOfficerCard">
+              <input type="radio" name="userRole" value="officer" onclick="selectRole('officer')" />
+              <span>🏛️ Nodal Officer (DDMA)</span>
+            </label>
+            <label class="role-card" id="roleAnalystCard">
+              <input type="radio" name="userRole" value="analyst" onclick="selectRole('analyst')" />
+              <span>🛰️ ISRO / GIS Analyst</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- District / Location Node Selector (Sign Up Only) -->
+        <div class="form-group hidden" id="groupDistrict">
+          <label for="districtSelect">Primary Village / District Node</label>
+          <select id="districtSelect" class="brutal-input">
+            <option value="gangtok">Gangtok · NH-10 Corridor (Sikkim)</option>
+            <option value="shillong">Shillong · Upper Shillong Peak (Meghalaya)</option>
+            <option value="cherrapunji">Cherrapunji · Sohra Ridge (Meghalaya)</option>
+            <option value="aizawl">Aizawl · Hunthar Landslide Zone (Mizoram)</option>
+            <option value="kohima">Kohima · Naga Hospital Slope (Nagaland)</option>
+            <option value="itanagar">Itanagar · Banderdewa Cut (Arunachal Pradesh)</option>
+            <option value="agartala">Agartala · Baramura Hill Range (Tripura)</option>
+            <option value="imphal">Imphal · Noney Railway Slope (Manipur)</option>
+            <option value="diphu">Diphu · Karbi Anglong Hills (Assam)</option>
+            <option value="namchi">Namchi · South Sikkim Highway (Sikkim)</option>
+          </select>
+        </div>
+
+        <!-- Email Field -->
+        <div class="form-group">
+          <label for="emailInput">Official / Citizen Email</label>
+          <div class="input-icon-wrap">
+            <span class="icon">✉️</span>
+            <input 
+              type="email" 
+              id="emailInput" 
+              class="brutal-input" 
+              placeholder="e.g. officer@ndrf.gov.in or citizen@ner.in" 
+              required 
+            />
+          </div>
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-group">
+          <label for="passwordInput">
+            <span>Password</span>
+            <a href="#forgot" onclick="triggerForgotPassword(event)" style="font-size:0.75rem; color:var(--orange-dark); font-weight:800; text-decoration:underline;" id="forgotLink">Forgot?</a>
+          </label>
+          <div class="input-icon-wrap">
+            <span class="icon">🔒</span>
+            <input 
+              type="password" 
+              id="passwordInput" 
+              class="brutal-input" 
+              placeholder="••••••••••••" 
+              required 
+            />
+            <button type="button" class="eye-toggle" onclick="togglePasswordVisibility()" title="Toggle password visibility">
+              👁️
+            </button>
+          </div>
+        </div>
+
+        <!-- Remember Me Checkbox -->
+        <div class="form-group" id="groupRemember" style="flex-direction: row; align-items: center; justify-content: space-between;">
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 8px; text-transform: none; font-size: 0.82rem;">
+            <input type="checkbox" id="rememberCheck" checked style="accent-color: #000; width: 16px; height: 16px;" />
+            <span>Remember credentials on this browser</span>
+          </label>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" class="brutal-btn brutal-btn-orange" id="btnSubmitAuth" style="width: 100%; justify-content: center; padding: 12px; margin-top: 8px; font-size: 0.95rem;">
+          <span id="btnSubmitText">🚀 Sign In to NER-Vision</span>
+        </button>
+
+      </form>
+
+      <!-- SSO Single Sign On Divider -->
+      <div class="sso-divider">
+        <span>Govt. & Enterprise SSO</span>
+      </div>
+
+      <!-- SSO Buttons -->
+      <div class="sso-grid">
+        <button type="button" class="sso-btn" onclick="triggerSSO('ePramaan Govt. ID')">
+          <span>🇮🇳 ePramaan Identity</span>
+        </button>
+        <button type="button" class="sso-btn" onclick="triggerSSO('NIC Officers SSO')">
+          <span>🏛️ NIC Officer Portal</span>
+        </button>
+      </div>
+
+      <!-- Footer Tag -->
+      <div style="margin-top: 20px; text-align: center; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-weight: 700;">
+        NER-Vision Security Protocol v2.4 · Encrypted via AES-256
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Classy Theme Refresh Overlay Component -->
+  <div id="themeRefreshOverlay" class="theme-refresh-overlay">
+    <div class="refresh-card-popup">
+      <div class="refresh-spinner-ring"></div>
+      <div class="refresh-title" id="refreshTitleText">REFRESHING THEME...</div>
+      <div class="refresh-sub" id="refreshSubText">Morphing Spatial UI Palette</div>
+    </div>
+  </div>
+
+  <!-- Neo-Brutalist Interactive Cursor System (Matches Main Page) -->
+  <div class="custom-cursor-dot" id="cursorDot"></div>
+  <div class="custom-cursor-ring" id="cursorRing"></div>
+
+  <script>
+    let currentTab = 'signin';
+
+    function switchAuthTab(tab) {
+      currentTab = tab;
+      const tabSignIn = document.getElementById('tabSignIn');
+      const tabSignUp = document.getElementById('tabSignUp');
+      const groupFullName = document.getElementById('groupFullName');
+      const groupRole = document.getElementById('groupRole');
+      const groupDistrict = document.getElementById('groupDistrict');
+      const groupRemember = document.getElementById('groupRemember');
+      const authSubtitle = document.getElementById('authSubtitle');
+      const btnSubmitText = document.getElementById('btnSubmitText');
+      const forgotLink = document.getElementById('forgotLink');
+
+      if (tab === 'signin') {
+        tabSignIn.classList.add('active');
+        tabSignUp.classList.remove('active');
+        
+        groupFullName.classList.add('hidden');
+        groupRole.classList.add('hidden');
+        groupDistrict.classList.add('hidden');
+        groupRemember.classList.remove('hidden');
+        forgotLink.style.display = 'inline';
+
+        authSubtitle.innerHTML = 'Access real-time telemetry, submit geotagged citizen landslide alerts, and receive priority emergency broadcasts.';
+        btnSubmitText.innerHTML = '🚀 Sign In to NER-Vision';
+      } else {
+        tabSignUp.classList.add('active');
+        tabSignIn.classList.remove('active');
+        
+        groupFullName.classList.remove('hidden');
+        groupRole.classList.remove('hidden');
+        groupDistrict.classList.remove('hidden');
+        groupRemember.classList.add('hidden');
+        forgotLink.style.display = 'none';
+
+        authSubtitle.innerHTML = 'Register your node account to join the North-East Emergency Response Network & receive automated voice alert calls.';
+        btnSubmitText.innerHTML = '✨ Create Verified Account';
+      }
+    }
+
+    function selectRole(role) {
+      ['citizen', 'responder', 'officer', 'analyst'].forEach(r => {
+        const card = document.getElementById(`role${capitalize(r)}Card`);
+        if (card) {
+          if (r === role) {
+            card.classList.add('selected');
+            card.querySelector('input').checked = true;
+          } else {
+            card.classList.remove('selected');
+          }
+        }
+      });
+    }
+
+    function capitalize(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    function togglePasswordVisibility() {
+      const input = document.getElementById('passwordInput');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function showToast(message, type = "success") {
+      const container = document.getElementById("toastContainer");
+      if (!container) return;
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `<span>${type === "success" ? "✅" : "⚠️"}</span> <span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(100%)";
+        toast.style.transition = "all 0.3s ease";
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    function triggerSSO(provider) {
+      showToast(`Initiating ${provider} authentication bridge...`, "success");
+      setTimeout(() => {
+        showToast(`Authenticated via ${provider}! Redirecting to Hazard Dashboard...`, "success");
+        setTimeout(() => window.location.href = "/", 1500);
+      }, 1200);
+    }
+
+    function triggerForgotPassword(e) {
+      e.preventDefault();
+      const email = document.getElementById('emailInput').value;
+      if (!email) {
+        showToast("Please enter your email address to receive password reset instructions.", "error");
+      } else {
+        showToast(`Password reset link dispatched to ${email}!`, "success");
+      }
+    }
+
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('emailInput').value;
+      const btn = document.getElementById('btnSubmitAuth');
+
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+
+      if (currentTab === 'signin') {
+        showToast("Verifying biometric & credential keys with NER-Vision Mesh...", "success");
+        setTimeout(() => {
+          showToast(`Welcome back, ${email.split('@')[0]}! Access Granted.`, "success");
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 1200);
+        }, 1200);
+      } else {
+        const name = document.getElementById('fullName').value || email.split('@')[0];
+        const district = document.getElementById('districtSelect').options[document.getElementById('districtSelect').selectedIndex].text;
+        showToast(`Registering new node account for ${name} (${district})...`, "success");
+        setTimeout(() => {
+          showToast("Account created successfully! Redirecting to Dashboard...", "success");
+          setTimeout(() => {
+            window.location.href = "/";
+          }, 1200);
+        }, 1400);
+      }
+    }
+
+    // Neo-Brutalist Cursor System Script
+    const cursorDot = document.getElementById('cursorDot');
+    const cursorRing = document.getElementById('cursorRing');
+
+    if (cursorDot && cursorRing) {
+      window.addEventListener('mousemove', (e) => {
+        cursorDot.style.left = `${e.clientX}px`;
+        cursorDot.style.top = `${e.clientY}px`;
+        cursorRing.style.left = `${e.clientX}px`;
+        cursorRing.style.top = `${e.clientY}px`;
+      });
+
+      window.addEventListener('mousedown', (e) => {
+        cursorRing.classList.add('active');
+        
+        // Spawn Click Burst
+        const burst = document.createElement('div');
+        burst.className = `click-burst ${Math.random() > 0.5 ? 'green-burst' : ''}`;
+        burst.style.left = `${e.clientX}px`;
+        burst.style.top = `${e.clientY}px`;
+        burst.innerText = ['BOOM!', 'POW!', 'SECURE!', 'NER-VISION', 'ISRO-SYNC'][Math.floor(Math.random() * 5)];
+        document.body.appendChild(burst);
+        setTimeout(() => burst.remove(), 400);
+      });
+
+      window.addEventListener('mouseup', () => {
+        cursorRing.classList.remove('active');
+      });
+
+      document.querySelectorAll('button, a, input, select, .role-card').forEach(el => {
+        el.addEventListener('mouseenter', () => cursorRing.classList.add('hovered'));
+        el.addEventListener('mouseleave', () => cursorRing.classList.remove('hovered'));
+      });
+    }
+
+    function triggerThemeRefresh() {
+      const overlay = document.getElementById('themeRefreshOverlay');
+      const btn = document.getElementById('themeToggleBtn');
+      const popupTitle = document.getElementById('refreshTitleText');
+      const popupSub = document.getElementById('refreshSubText');
+
+      if (btn) btn.classList.add('refreshing');
+
+      const isDarkCurrently = document.documentElement.classList.contains('theme-bluish-dark');
+      const targetThemeName = isDarkCurrently ? "Classic Orange & Green" : "Classy Dark Bluish";
+
+      if (popupTitle) popupTitle.textContent = `REFRESHING THEME...`;
+      if (popupSub) popupSub.textContent = `Morphing UI to ${targetThemeName}`;
+
+      if (overlay) overlay.classList.add('active');
+
+      setTimeout(() => {
+        if (isDarkCurrently) {
+          document.documentElement.classList.remove('theme-bluish-dark');
+          if (document.body) document.body.classList.remove('theme-bluish-dark');
+          localStorage.setItem('ner_vision_theme', 'light-orange-green');
+        } else {
+          document.documentElement.classList.add('theme-bluish-dark');
+          if (document.body) document.body.classList.add('theme-bluish-dark');
+          localStorage.setItem('ner_vision_theme', 'bluish-dark');
+        }
+
+        updateThemeToggleUI();
+
+        const layout = document.querySelector('main') || document.body;
+        layout.classList.add('theme-refresh-wave');
+        setTimeout(() => layout.classList.remove('theme-refresh-wave'), 650);
+
+      }, 350);
+
+      setTimeout(() => {
+        if (overlay) overlay.classList.remove('active');
+        if (btn) btn.classList.remove('refreshing');
+        
+        if (typeof showToast === 'function') {
+          showToast(`Theme Refreshed to ${targetThemeName} 🚀`, "success");
+        }
+      }, 750);
+    }
+
+    function updateThemeToggleUI() {
+      const isDark = document.documentElement.classList.contains('theme-bluish-dark');
+      const btns = document.querySelectorAll('.top-left-theme-btn');
+      btns.forEach(btn => {
+        const label = btn.querySelector('.btn-text');
+        const icon = btn.querySelector('.refresh-icon-spin');
+        if (label) label.textContent = isDark ? "Classic Mode" : "Dark Blue Mode";
+        if (icon) icon.textContent = isDark ? "☀️" : "🌌";
+      });
+    }
+
+    function initTheme() {
+      const savedTheme = localStorage.getItem('ner_vision_theme');
+      if (savedTheme === 'bluish-dark') {
+        document.documentElement.classList.add('theme-bluish-dark');
+        if (document.body) document.body.classList.add('theme-bluish-dark');
+      } else {
+        document.documentElement.classList.remove('theme-bluish-dark');
+        if (document.body) document.body.classList.remove('theme-bluish-dark');
+      }
+      updateThemeToggleUI();
+    }
+
+    (function prebootTheme() {
+      const savedTheme = localStorage.getItem('ner_vision_theme');
+      if (savedTheme === 'bluish-dark') {
+        document.documentElement.classList.add('theme-bluish-dark');
+      }
+    })();
+
+    document.addEventListener('DOMContentLoaded', initTheme);
+  </script>
+</body>
+</html>

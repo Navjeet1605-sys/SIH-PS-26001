@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NER-Vision · Citizen Landslide Incident Reports Feed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    .reports-page-body {
+      background: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .reports-header {
+      background: var(--bg-card);
+      border-bottom: 2px solid #000;
+      padding: 16px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 0 #000;
+    }
+    .reports-container {
+      max-width: 1200px;
+      margin: 28px auto;
+      padding: 0 20px;
+    }
+    .tab-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #000;
+      padding-bottom: 12px;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      font-weight: 800;
+      border: 2px solid #000;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      box-shadow: 2px 2px 0 #000;
+      font-size: 0.85rem;
+    }
+    .tab-btn.active {
+      background: var(--orange-dark);
+      color: #fff;
+    }
+    .report-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 20px;
+    }
+    .rep-card {
+      background: var(--bg-card);
+      border: 2px solid #000;
+      border-radius: 10px;
+      padding: 18px;
+      box-shadow: 4px 4px 0 #000;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .rep-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .rep-title {
+      font-weight: 900;
+      font-size: 1.05rem;
+    }
+    .rep-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .rep-desc {
+      font-size: 0.9rem;
+      line-height: 1.4;
+      margin: 10px 0;
+      font-weight: 600;
+    }
+    .nlp-box {
+      background: rgba(0,0,0,0.04);
+      border: 1px dashed #000;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 0.75rem;
+      margin-top: 10px;
+    }
+    .v-badge {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 800;
+      font-size: 0.72rem;
+      border: 1px solid #000;
+    }
+    .v-badge.verified { background: #dcfce7; color: #15803d; }
+    .v-badge.unverified { background: #fee2e2; color: #b91c1c; }
+  </style>
+</head>
+<body class="reports-page-body">
+
+  <!-- Header Navigation -->
+  <header class="reports-header">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <a href="/" style="font-weight:900; font-size:1.2rem; color:var(--text-main); text-decoration:none;">
+        🏔️ NER-VISION
+      </a>
+      <span style="background:var(--orange-dark); color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:4px; font-weight:800; border:1px solid #000;">
+        COMMUNITY REPORTS FEED (`reports.db`)
+      </span>
+    </div>
+
+    <div style="display:flex; gap:12px;">
+      <a href="/" class="brutal-btn brutal-btn-sm" style="background:#fff;">← Live Map Dashboard</a>
+      <a href="/admin" class="brutal-btn brutal-btn-sm" style="background:#0f172a; color:#38bdf8; border-color:#38bdf8;">🔒 Admin Clearance</a>
+    </div>
+  </header>
+
+  <!-- Container -->
+  <div class="reports-container">
+    <div style="margin-bottom:20px;">
+      <h1 style="margin:0 0 6px 0; font-size:1.8rem; font-weight:900;">📸 Citizen Landslide Reports Bulletin</h1>
+      <p style="margin:0; color:var(--text-muted); font-size:0.9rem;">
+        Real-time geotagged hazard alerts submitted by citizens across North-East India, verified via NLP & NDMA command center.
+      </p>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tabAll" onclick="filterReports('ALL')">All Published Reports (<span id="cntAll">0</span>)</button>
+      <button class="tab-btn" id="tabVer" onclick="filterReports('VERIFIED')">✓ Verified Real (<span id="cntVer">0</span>)</button>
+      <button class="tab-btn" id="tabUnver" onclick="filterReports('UNVERIFIED')">⚠️ Under Moderation (<span id="cntUnver">0</span>)</button>
+    </div>
+
+    <!-- Grid Feed -->
+    <div id="reportsGrid" class="report-card-grid">
+      <div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted);">
+        Loading citizen reports feed from <code>reports.db</code>...
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ALL_REPORTS = [];
+
+    async function loadReportsFeed() {
+      try {
+        const res = await fetch("/api/v1/reports");
+        ALL_REPORTS = await res.json();
+        
+        const verCount = ALL_REPORTS.filter(r => r.is_verified || r.verification_status === "VERIFIED_REAL").length;
+        const unverCount = ALL_REPORTS.length - verCount;
+
+        document.getElementById("cntAll").textContent = ALL_REPORTS.length;
+        document.getElementById("cntVer").textContent = verCount;
+        document.getElementById("cntUnver").textContent = unverCount;
+
+        renderGrid(ALL_REPORTS);
+      } catch (err) {
+        document.getElementById("reportsGrid").innerHTML = `<div style="color:#ef4444; font-weight:800;">Failed to connect to reports.db database feed.</div>`;
+      }
+    }
+
+    function filterReports(category) {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      if (category === "ALL") {
+        document.getElementById("tabAll").classList.add("active");
+        renderGrid(ALL_REPORTS);
+      } else if (category === "VERIFIED") {
+        document.getElementById("tabVer").classList.add("active");
+        renderGrid(ALL_REPORTS.filter(r => r.is_verified || r.verification_status === "VERIFIED_REAL"));
+      } else {
+        document.getElementById("tabUnver").classList.add("active");
+        renderGrid(ALL_REPORTS.filter(r => !r.is_verified && r.verification_status !== "VERIFIED_REAL"));
+      }
+    }
+
+    function renderGrid(reports) {
+      const grid = document.getElementById("reportsGrid");
+      if (!reports || reports.length === 0) {
+        grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted);">No reports found in this category.</div>`;
+        return;
+      }
+
+      grid.innerHTML = reports.map(r => {
+        const isVer = r.is_verified || r.verification_status === "VERIFIED_REAL";
+        const score = (r.verification_score * 100).toFixed(0);
+        const reasons = (r.verification_reasons || []).join("; ");
+        const timeStr = r.timestamp ? new Date(r.timestamp).toLocaleString('en-IN') : 'Recent';
+
+        return `
+          <div class="rep-card">
+            <div>
+              <div class="rep-card-header">
+                <div>
+                  <div class="rep-title">📍 ${r.location_name || 'Sector ' + r.location_id}</div>
+                  <div class="rep-sub">${timeStr} · ${r.lat.toFixed(4)}°N, ${r.lng.toFixed(4)}°E</div>
+                </div>
+                <span class="v-badge ${isVer ? 'verified' : 'unverified'}">
+                  ${isVer ? '✓ VERIFIED REAL' : '⚠️ UNDER REVIEW'} (${score}%)
+                </span>
+              </div>
+
+              <div style="margin-bottom:6px;">
+                <span class="badge ${r.reported_severity.replace(' ', '-')}">${r.reported_severity} Severity</span>
+              </div>
+
+              <div class="rep-desc">"${r.description}"</div>
+            </div>
+
+            <div>
+              <div class="nlp-box">
+                <b>🧠 AI Verification Analysis:</b><br>
+                <span>${reasons || 'Cross-checked against GSI terrain & IMD rainfall telemetry.'}</span>
+              </div>
+              
+              ${r.media_url ? `
+                <div style="margin-top:10px;">
+                  <a href="${r.media_url}" target="_blank" style="font-size:0.78rem; font-weight:800; color:var(--orange-dark);">
+                    🖼️ View Media / Photo Evidence →
+                  </a>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    window.onload = loadReportsFeed;
+  </script>
+</body>
+</html>
